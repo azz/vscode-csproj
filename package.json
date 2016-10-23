@@ -1,63 +1,63 @@
 {
-  "name": "vscode-csproj",
-  "displayName": "vscode-csproj",
-  "description": "Add files to .csproj on save.",
-  "version": "0.0.1",
-  "publisher": "lucasazzola",
-  "engines": {
-    "vscode": "^1.5.0"
-  },
-  "categories": [
-    "Productivity"
-  ],
-  "activationEvents": [
-    "*"
-  ],
-  "icon": "./img/icon.png",
-  "main": "./out/src/extension",
-  "contributes": {
-    "commands": [
-      {
-        "command": "extension.addToCsproj",
-        "title": "csproj: Add File"
-      },
-      {
-        "command": "extension.addToCsproj_clearIgnoredPaths",
-        "title": "csproj: Clear Ignored Paths"
-      }
+    "name": "vscode-csproj",
+    "displayName": "vscode-csproj",
+    "description": "Add files to .csproj on save.",
+    "version": "0.1.0",
+    "publisher": "lucasazzola",
+    "engines": {
+        "vscode": "^1.5.0"
+    },
+    "categories": [
+        "Other"
     ],
-    "configuration": {
-        "type": "object",
-        "title": "Add to .csproj configuration",
-        "properties": {
-            "addToCsproj.enabled": {
-                "type": "boolean",
-                "default": true,
-                "description": "Turn this extension on or off."
+    "activationEvents": [
+        "*"
+    ],
+    "icon": "img/icon.png",
+    "main": "./out/src/extension",
+    "contributes": {
+        "commands": [
+            {
+                "command": "extension.addToCsproj",
+                "title": "csproj: Add File"
+            },
+            {
+                "command": "extension.addToCsproj_clearIgnoredPaths",
+                "title": "csproj: Clear Ignored Paths"
+            }
+        ],
+        "configuration": {
+            "type": "object",
+            "title": "Add to .csproj configuration",
+            "properties": {
+                "addToCsproj.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Turn this extension on or off."
+                }
             }
         }
+    },
+    "scripts": {
+        "vscode:prepublish": "tsc -p ./",
+        "compile": "tsc -watch -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install"
+    },
+    "devDependencies": {
+        "typescript": "^2.0.3",
+        "vscode": "^1.0.0",
+        "mocha": "^2.3.3",
+        "@types/node": "^6.0.40",
+        "@types/mocha": "^2.2.32"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/DerFlatulator/vscode-csproj"
+    },
+    "dependencies": {
+        "@types/mz": "0.0.30",
+        "elementtree": "^0.1.6",
+        "mz": "^2.4.0",
+        "strip-bom": "^3.0.0"
     }
-  },
-  "scripts": {
-    "vscode:prepublish": "tsc -p ./",
-    "compile": "tsc -watch -p ./",
-    "postinstall": "node ./node_modules/vscode/bin/install"
-  },
-  "devDependencies": {
-    "typescript": "^2.0.3",
-    "vscode": "^1.0.0",
-    "mocha": "^2.3.3",
-    "@types/node": "^6.0.40",
-    "@types/mocha": "^2.2.32"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/DerFlatulator/vscode-csproj"
-  },
-  "dependencies": {
-    "@types/mz": "0.0.30",
-    "elementtree": "^0.1.6",
-    "mz": "^2.4.0",
-    "strip-bom": "^3.0.0"
-  }
 }
