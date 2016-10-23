@@ -17,7 +17,7 @@ const [YES, NO, NEVER] = ['Yes', 'Not Now (Move to Status Bar)', 'Never For This
 
 export function activate(context: vscode.ExtensionContext) {
     const config = vscode.workspace.getConfiguration("addToCsproj")
-    if (!config.get<boolean>('enabled'))
+    if (!config.get<boolean>('enabled', true))
         return
 
     console.log('extension.addToCsproj#activate')
@@ -127,7 +127,7 @@ interface ActionArgs {
 const pickActions = {
     async [YES]({ filePathRel, csprojPath, csprojXml, indent }: ActionArgs) {
         const config = vscode.workspace.getConfiguration("addToCsproj")
-        const itemType = config.get<string>('itemType')
+        const itemType = config.get<string>('itemType', 'Content')
         addFileToCsproj(csprojXml, filePathRel, itemType)
         _addedSinceActivate.push(filePathRel)
         await writeXml(csprojXml, csprojPath, indent)
