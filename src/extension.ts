@@ -16,7 +16,8 @@ let _statusBarItemVisible = false;
 const [YES, NO, NEVER] = ['Yes', 'Not Now (Move to Status Bar)', 'Never For This File']
 
 export function activate(context: vscode.ExtensionContext) {
-    if (!vscode.workspace.getConfiguration("addToCsproj.enabled"))
+    const config = vscode.workspace.getConfiguration("addToCsproj")
+    if (!config.get<boolean>('enabled'))
         return
 
     console.log('extension.addToCsproj#activate')
@@ -108,7 +109,8 @@ async function addToCsprojCommand(this: vscode.ExtensionContext, prompt = false)
         })
 
     } catch (err) {
-        vscode.window.showErrorMessage(err.toString())
+        if (!(err instanceof NoCsprojError))
+            vscode.window.showErrorMessage(err.toString())
     }
 }
 
@@ -124,7 +126,9 @@ interface ActionArgs {
 
 const pickActions = {
     async [YES]({ filePathRel, csprojPath, csprojXml, indent }: ActionArgs) {
-        addFileToCsproj(csprojXml, filePathRel)
+        const config = vscode.workspace.getConfiguration("addToCsproj")
+        const itemType = config.get<string>('itemType')
+        addFileToCsproj(csprojXml, filePathRel, itemType)
         _addedSinceActivate.push(filePathRel)
         await writeXml(csprojXml, csprojPath, indent)
 

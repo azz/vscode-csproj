@@ -8,12 +8,12 @@
     "vscode": "^1.5.0"
   },
   "categories": [
-    "Other"
+    "Productivity"
   ],
   "activationEvents": [
-    "*",
-    "workspaceContains:*.csproj"
+    "*"
   ],
+  "icon": "./img/icon.png",
   "main": "./out/src/extension",
   "contributes": {
     "commands": [
@@ -49,6 +49,10 @@
     "mocha": "^2.3.3",
     "@types/node": "^6.0.40",
     "@types/mocha": "^2.2.32"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DerFlatulator/vscode-csproj"
   },
   "dependencies": {
     "@types/mz": "0.0.30",
