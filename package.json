@@ -19,9 +19,24 @@
     "commands": [
       {
         "command": "extension.addToCsproj",
-        "title": "Add file to .csproj"
+        "title": "csproj: Add File"
+      },
+      {
+        "command": "extension.addToCsproj_clearIgnoredPaths",
+        "title": "csproj: Clear Ignored Paths"
       }
-    ]
+    ],
+    "configuration": {
+        "type": "object",
+        "title": "Add to .csproj configuration",
+        "properties": {
+            "addToCsproj.enabled": {
+                "type": "boolean",
+                "default": true,
+                "description": "Turn this extension on or off."
+            }
+        }
+    }
   },
   "scripts": {
     "vscode:prepublish": "tsc -p ./",
