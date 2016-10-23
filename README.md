@@ -14,6 +14,9 @@ You can add a file to csproj via the command palette:
 
 ![Command](img/demo-command.png "Command Palette")
 
+Or via the context menu in the file explorer:
+
+![Context](img/demo-context-menu.png "Context Menu")
 
 ## Extension Settings
 
