@@ -20,7 +20,7 @@ You can add a file to csproj via the command palette:
 This extension contributes the following settings:
 
 * `addToCsproj.enable`: Enable/disable this extension.
-* `addToCsproj.itemType`: Type of element to put in the csproj file. Defaults to `Content`.
+* `addToCsproj.itemType`: Type of XML element to put in the csproj file. Defaults to `"Content"`.
 
 ## Release Notes
 

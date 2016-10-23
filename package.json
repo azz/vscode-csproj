@@ -2,7 +2,7 @@
     "name": "vscode-csproj",
     "displayName": "vscode-csproj",
     "description": "Add files to .csproj on save.",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "publisher": "lucasazzola",
     "engines": {
         "vscode": "^1.5.0"
@@ -34,6 +34,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Turn this extension on or off."
+                },
+                "addToCsproj.itemType": {
+                    "type": "string",
+                    "default": "Content",
+                    "description": "Type of XML element to put in the csproj file."
                 }
             }
         }
