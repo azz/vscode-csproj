@@ -47,3 +47,9 @@ Features:
 Fixes:
 
 * Fix a caching bug when using multiple csproj files.
+
+### 0.1.2
+
+Fixes:
+
+* Fix configuration autocompletion in settings files.
