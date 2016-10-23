@@ -7,10 +7,10 @@ import * as path from 'path'
 const etree = require('elementtree')
 const stripBom = require('strip-bom')
 
-let _cacheXml: XML | undefined = undefined;
-let _cacheIndent: number | undefined = undefined;
-let _addedSinceActivate: string[] = [];
-let _statusBarItem: vscode.StatusBarItem;
+let _cacheXml: { [path: string]: XML } = Object.create(null)
+let _cacheIndent: { [path: string]: number } = Object.create(null)
+let _addedSinceActivate: string[] = []
+let _statusBarItem: vscode.StatusBarItem
 let _statusBarItemVisible = false;
 
 const [YES, NO, NEVER] = ['Yes', 'Not Now (Move to Status Bar)', 'Never For This File']
@@ -50,8 +50,8 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {
     console.log('extension.addToCsproj#deactivate');
     _addedSinceActivate = []
-    _cacheXml = undefined
-    _cacheIndent = undefined
+    _cacheXml = Object.create(null)
+    _cacheIndent = Object.create(null)
     hideStatusBarItem()
 }
 
@@ -79,32 +79,32 @@ async function addToCsprojCommand(this: vscode.ExtensionContext, prompt = false)
         const csprojName = path.basename(csprojPath)
         const filePathRel = path.relative(path.dirname(csprojPath), fileName)
 
-        if (!_cacheXml || typeof _cacheIndent === 'undefined') {
+        if (!(csprojPath in _cacheXml) || !(csprojPath in _cacheIndent)) {
             const csprojContent = await readFile(csprojPath)
-            _cacheXml = <XML>etree.parse(csprojContent)
-            _cacheIndent = detectIndent(csprojContent)
+            _cacheXml[csprojPath] = <XML>etree.parse(csprojContent)
+            _cacheIndent[csprojPath] = detectIndent(csprojContent)
         }
 
         if (_addedSinceActivate.indexOf(filePathRel) > -1
-            || csprojHasFile(_cacheXml, filePathRel))
+            || csprojHasFile(_cacheXml[csprojPath], filePathRel))
             return
 
-        const pickResult = prompt
+        let pickResult = prompt
             ? await vscode.window.showQuickPick([YES, NO, NEVER], {
                 placeHolder: `This file is not in ${csprojName}, would you like to add it?`
               })
             : YES
 
-        if (!pickActions[pickResult])
-            return
+        if (!(pickResult in pickActions))
+            pickResult = NO
 
         await pickActions[pickResult]({
             filePathRel,
             filePathAbs: fileName,
             csprojName,
             csprojPath,
-            csprojXml: _cacheXml,
-            indent: _cacheIndent,
+            csprojXml: _cacheXml[csprojPath],
+            indent: _cacheIndent[csprojPath],
             globalState: this.globalState
         })
 
