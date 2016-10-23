@@ -29,8 +29,11 @@ This extension contributes the following settings:
 Initial release.
 
 * Support adding to nearest csproj by walking up the file system tree from current file.
-* Support custom item types. (Global setting only)
-* Support enable/disable configuration.
 * Status bar item for items temporarily ignored from csproj.
 * Persistent ignore list for items not to be added to csproj.
 * Caching to prevent excessive csproj reads.
+
+### 0.1.0
+
+* Support enable/disable configuration.
+* Support custom item types. (Global setting only)
