@@ -19,8 +19,15 @@ You can add a file to csproj via the command palette:
 
 This extension contributes the following settings:
 
-* `addToCsproj.enable`: Enable/disable this extension.
-* `addToCsproj.itemType`: Type of XML element to put in the csproj file. Defaults to `"Content"`.
+* `csproj.enable`: Enable/disable this extension.
+* `csproj.itemType`: Type of XML element to put in the csproj file. Defaults to `"Content"`.
+* `csproj.includeRegex`: Regular expression to match files you want to add to csproj.
+* `csproj.excludeRegex`: Regular expression to exclude files you do not want to add to csproj.
+
+If a file matches `includeRegex` *and* `excludeRegex`, it will be excluded.
+
+The regular expressions will prevent this extension from prompting for action, but it intentionally will not
+prevent you from adding via the command palette or a context menu.
 
 ## Release Notes
 
@@ -53,3 +60,10 @@ Fixes:
 Fixes:
 
 * Fix configuration autocompletion in settings files.
+
+### 0.2.0
+
+Features:
+
+* Context menu item in file explorer.
+* `includeRegex` and `excludeRegex`.

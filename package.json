@@ -19,7 +19,7 @@
         "commands": [
             {
                 "command": "extension.addToCsproj",
-                "title": "csproj: Add File"
+                "title": "csproj: Include In Project"
             },
             {
                 "command": "extension.addToCsproj_clearIgnoredPaths",
@@ -30,17 +30,33 @@
             "type": "object",
             "title": "Add to .csproj configuration",
             "properties": {
-                "addToCsproj.enabled": {
+                "csproj.enabled": {
                     "type": "boolean",
                     "default": true,
                     "description": "Turn this extension on or off."
                 },
-                "addToCsproj.itemType": {
+                "csproj.itemType": {
                     "type": "string",
                     "default": "Content",
                     "description": "Type of XML element to put in the csproj file."
+                },
+                "csproj.includeRegex": {
+                    "type": ["string", "null"],
+                    "default": ".*",
+                    "description": "A regular expression to include file paths by."
+                },
+                "csproj.excludeRegex": {
+                    "type": ["string", "null"],
+                    "default": null,
+                    "description": "A regular expression to exclude file paths by."
                 }
             }
+        },
+        "menus": {
+            "explorer/context": [{
+                "command": "extension.addToCsproj",
+                "group": "1_modification"
+            }]
         }
     },
     "scripts": {

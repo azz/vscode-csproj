@@ -16,30 +16,32 @@ let _statusBarItemVisible = false;
 const [YES, NO, NEVER] = ['Yes', 'Not Now (Move to Status Bar)', 'Never For This File']
 
 export function activate(context: vscode.ExtensionContext) {
-    const config = vscode.workspace.getConfiguration("addToCsproj")
+    const config = vscode.workspace.getConfiguration("csproj")
     if (!config.get<boolean>('enabled', true))
         return
 
-    console.log('extension.addToCsproj#activate')
+    console.log('extension.csproj#activate')
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('extension.addToCsproj',
-            addToCsprojCommand.bind(context)),
+        vscode.commands.registerCommand('extension.csproj',
+            csprojCommand.bind(context)),
 
-        vscode.commands.registerCommand('extension.addToCsproj_clearIgnoredPaths',
+        vscode.commands.registerCommand('extension.csproj_clearIgnoredPaths',
             clearIgnoredPathsCommand.bind(context)),
 
         vscode.workspace.onDidSaveTextDocument(() => {
             if (ignoreEvent(context)) return
 
-            vscode.commands.executeCommand('extension.addToCsproj', true)
+            vscode.commands.executeCommand('extension.csproj',
+                undefined, true)
         }),
 
         vscode.window.onDidChangeActiveTextEditor(() => {
             hideStatusBarItem()
             if (ignoreEvent(context)) return
 
-            vscode.commands.executeCommand('extension.addToCsproj', true)
+            vscode.commands.executeCommand('extension.csproj',
+                undefined, true)
         }),
 
         _statusBarItem = createStatusBarItem()
@@ -48,7 +50,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-    console.log('extension.addToCsproj#deactivate');
+    console.log('extension.csproj#deactivate');
     _addedSinceActivate = []
     _cacheXml = Object.create(null)
     _cacheIndent = Object.create(null)
@@ -57,7 +59,7 @@ export function deactivate() {
 
 function ignoreEvent(context: vscode.ExtensionContext) {
     const {fileName} = vscode.window.activeTextEditor.document;
-    if (isIgnoredPath(context.globalState, fileName))
+    if (!isDesiredFile(context.globalState, fileName))
         return true
 
     if (_statusBarItemVisible)
@@ -66,18 +68,24 @@ function ignoreEvent(context: vscode.ExtensionContext) {
     return false
 }
 
-async function addToCsprojCommand(this: vscode.ExtensionContext, prompt = false) {
-    const {fileName} = vscode.window.activeTextEditor.document;
-    console.log(`extension.addToCsproj#trigger(${fileName})`);
+async function csprojCommand(
+    this: vscode.ExtensionContext,
+    uri: vscode.Uri | undefined = undefined,
+    prompt = false
+) {
+    // Use file path from context menu or fall back to active document
+    const filePath = uri ? uri.fsPath : vscode.window.activeTextEditor.document.fileName
+    const fileName = path.basename(filePath)
+    console.log(`extension.csproj#trigger(${fileName})`)
 
-    // Pass if we're saving a csproj file, or we are a standalone file without a path.
-    if (fileName.endsWith('.csproj') || !fileName.match(/(\/|\\)/))
+    // Skip if we're saving a csproj file, or we are a standalone file without a path.
+    if (filePath.endsWith('.csproj') || !/(\/|\\)/.test(filePath))
         return
 
     try {
-        const csprojPath = await getCsprojPath(path.dirname(fileName))
+        const csprojPath = await getCsprojPath(path.dirname(filePath))
         const csprojName = path.basename(csprojPath)
-        const filePathRel = path.relative(path.dirname(csprojPath), fileName)
+        const filePathRel = path.relative(path.dirname(csprojPath), filePath)
 
         if (!(csprojPath in _cacheXml) || !(csprojPath in _cacheIndent)) {
             const csprojContent = await readFile(csprojPath)
@@ -89,18 +97,17 @@ async function addToCsprojCommand(this: vscode.ExtensionContext, prompt = false)
             || csprojHasFile(_cacheXml[csprojPath], filePathRel))
             return
 
-        let pickResult = prompt
+        let pickResult = (prompt === true)
             ? await vscode.window.showQuickPick([YES, NO, NEVER], {
-                placeHolder: `This file is not in ${csprojName}, would you like to add it?`
+                placeHolder: `${fileName} is not in ${csprojName}, would you like to add it?`
               })
             : YES
 
-        if (!(pickResult in pickActions))
-            pickResult = NO
-
-        await pickActions[pickResult]({
+        // Default to "No" action if user blurs the picker
+        await (pickActions[pickResult] || pickActions[NO])({
             filePathRel,
-            filePathAbs: fileName,
+            filePathAbs: filePath,
+            fileName,
             csprojName,
             csprojPath,
             csprojXml: _cacheXml[csprojPath],
@@ -117,6 +124,7 @@ async function addToCsprojCommand(this: vscode.ExtensionContext, prompt = false)
 interface ActionArgs {
     filePathRel: string
     filePathAbs: string
+    fileName: string
     csprojPath: string
     csprojXml: XML
     csprojName: string
@@ -125,25 +133,26 @@ interface ActionArgs {
 }
 
 const pickActions = {
-    async [YES]({ filePathRel, csprojPath, csprojXml, indent }: ActionArgs) {
-        const config = vscode.workspace.getConfiguration("addToCsproj")
+    async [YES]({ filePathRel, fileName, csprojPath, csprojXml, indent }: ActionArgs) {
+        const config = vscode.workspace.getConfiguration("csproj")
         const itemType = config.get<string>('itemType', 'Content')
         addFileToCsproj(csprojXml, filePathRel, itemType)
         _addedSinceActivate.push(filePathRel)
         await writeXml(csprojXml, csprojPath, indent)
 
         hideStatusBarItem()
-        vscode.window.showInformationMessage(`Added to ${csprojPath}`)
+        await vscode.window.showInformationMessage(`Added ${fileName} to ${csprojPath}`)
     },
     [NO]({ csprojName }: ActionArgs) {
         displayStatusBarItem(csprojName)
     },
-    [NEVER]({ filePathAbs, globalState }: ActionArgs) {
-        updateIgnoredPaths(globalState, filePathAbs)
+    async [NEVER]({ filePathAbs, globalState, fileName }: ActionArgs) {
+        await updateIgnoredPaths(globalState, filePathAbs)
 
         hideStatusBarItem()
-        vscode.window.showInformationMessage(
-            'Added file to ignore list, to clear list, run the "csproj: Clear ignored paths"')
+        await vscode.window.showInformationMessage(
+            `Added ${fileName} to ignore list, to clear list, ` +
+            `run the "csproj: Clear ignored paths"`)
     }
 }
 
@@ -161,25 +170,38 @@ function hideStatusBarItem() {
 
 function createStatusBarItem() {
     const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
-    item.text = "not in .csproj"
     item.tooltip = "Add to csproj"
-    item.command = 'extension.addToCsproj'
+    item.command = 'extension.csproj'
     return item
 }
 
-function updateIgnoredPaths(globalState: vscode.Memento, addPath: string) {
-    const list = globalState.get<string[]>('addToCsproj.ignorePaths') || []
+async function updateIgnoredPaths(globalState: vscode.Memento, addPath: string) {
+    const list = globalState.get<string[]>('csproj.ignorePaths') || []
     list.push(addPath)
-    globalState.update('addToCsproj.ignorePaths', list)
+    await globalState.update('csproj.ignorePaths', list)
 }
 
-function isIgnoredPath(globalState: vscode.Memento, queryPath: string) {
-    const ignorePaths = globalState.get<string[]>('addToCsproj.ignorePaths') || [];
-    return ignorePaths.indexOf(queryPath) > -1
+function isDesiredFile(globalState: vscode.Memento, queryPath: string) {
+    const config = vscode.workspace.getConfiguration("csproj")
+
+    const ignorePaths = globalState.get<string[]>('csproj.ignorePaths') || [];
+    if (ignorePaths.indexOf(queryPath) > -1)
+        return false
+
+    const includeRegex = config.get('includeRegex', '.*')
+    const excludeRegex = config.get('excludeRegex', null)
+
+    if (includeRegex != null && !new RegExp(includeRegex).test(queryPath))
+        return false
+
+    if (excludeRegex != null && new RegExp(excludeRegex).test(queryPath))
+        return false
+
+    return true
 }
 
 function clearIgnoredPathsCommand(this: vscode.ExtensionContext) {
-    this.globalState.update('addToCsproj.ignorePaths', [])
+    this.globalState.update('csproj.ignorePaths', [])
 }
 
 class NoCsprojError extends Error {}
@@ -208,7 +230,7 @@ function csprojHasFile(xml: XML, filePathRel: string) {
     return !!content || !!tsc
 }
 
-async function addFileToCsproj(xml: XML, filePathRel: string, itemType = 'Content') {
+async function addFileToCsproj(xml: XML, filePathRel: string, itemType: string) {
     const itemGroup = xml.getroot().find('./ItemGroup')
     const itemElement = etree.SubElement(itemGroup, itemType)
     itemElement.set('Include', filePathRel)
