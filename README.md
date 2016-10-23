@@ -67,3 +67,9 @@ Features:
 
 * Context menu item in file explorer.
 * `includeRegex` and `excludeRegex`.
+
+### 0.2.1
+
+Fixes:
+
+* Fix configuration for editor context menu.

@@ -2,7 +2,7 @@
     "name": "vscode-csproj",
     "displayName": "VS Code .csproj",
     "description": "Add files to .csproj.",
-    "version": "0.1.2",
+    "version": "0.2.0",
     "publisher": "lucasazzola",
     "engines": {
         "vscode": "^1.5.0"
@@ -18,11 +18,11 @@
     "contributes": {
         "commands": [
             {
-                "command": "extension.addToCsproj",
+                "command": "extension.csproj",
                 "title": "csproj: Include In Project"
             },
             {
-                "command": "extension.addToCsproj_clearIgnoredPaths",
+                "command": "extension.csproj_clearIgnoredPaths",
                 "title": "csproj: Clear Ignored Paths"
             }
         ],
@@ -41,22 +41,30 @@
                     "description": "Type of XML element to put in the csproj file."
                 },
                 "csproj.includeRegex": {
-                    "type": ["string", "null"],
+                    "type": [
+                        "string",
+                        "null"
+                    ],
                     "default": ".*",
                     "description": "A regular expression to include file paths by."
                 },
                 "csproj.excludeRegex": {
-                    "type": ["string", "null"],
+                    "type": [
+                        "string",
+                        "null"
+                    ],
                     "default": null,
                     "description": "A regular expression to exclude file paths by."
                 }
             }
         },
         "menus": {
-            "explorer/context": [{
-                "command": "extension.addToCsproj",
-                "group": "1_modification"
-            }]
+            "explorer/context": [
+                {
+                    "command": "extension.csproj",
+                    "group": "1_modification"
+                }
+            ]
         }
     },
     "scripts": {
