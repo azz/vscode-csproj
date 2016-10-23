@@ -1,6 +1,6 @@
 {
     "name": "vscode-csproj",
-    "displayName": "vscode-csproj",
+    "displayName": "VS Code .csproj",
     "description": "Add files to .csproj on save.",
     "version": "0.1.2",
     "publisher": "lucasazzola",
