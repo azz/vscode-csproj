@@ -76,3 +76,15 @@ Features:
 Fixes:
 
 * Fix configuration for editor context menu.
+
+### 0.3.0
+
+Features:
+
+* Detect changes to csproj and lazily reload into cache.
+* Add files to the last `ItemGroup` in csproj, or create one if there are none.
+
+Fixes:
+
+* Fix handling of comments in csproj. (Preserve them.)
+* Fix incorrect indentation detection in some cases. Hard-code to two-spaces.
