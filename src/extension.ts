@@ -4,12 +4,12 @@ import * as vscode from 'vscode'
 import * as fs from 'mz/fs'
 import * as path from 'path'
 
+import XMLParser, {XML, XMLElement} from './parser'
+
 const etree = require('elementtree')
 const stripBom = require('strip-bom')
 
 let _cacheXml: { [path: string]: XML } = Object.create(null)
-let _cacheIndent: { [path: string]: number } = Object.create(null)
-let _addedSinceActivate: string[] = []
 let _statusBarItem: vscode.StatusBarItem
 let _statusBarItemVisible = false;
 
@@ -22,6 +22,8 @@ export function activate(context: vscode.ExtensionContext) {
 
     console.log('extension.csproj#activate')
 
+    const watcher = vscode.workspace.createFileSystemWatcher('**/*.csproj');
+
     context.subscriptions.push(
         vscode.commands.registerCommand('extension.csproj',
             csprojCommand.bind(context)),
@@ -29,20 +31,30 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('extension.csproj_clearIgnoredPaths',
             clearIgnoredPathsCommand.bind(context)),
 
-        vscode.workspace.onDidSaveTextDocument(() => {
-            if (ignoreEvent(context)) return
+        vscode.workspace.onDidSaveTextDocument(async (e: vscode.TextDocument) => {
+            if (ignoreEvent(context, e.uri)) return
 
-            vscode.commands.executeCommand('extension.csproj',
-                undefined, true)
+            await vscode.commands.executeCommand('extension.csproj',
+                e.uri, true)
         }),
 
-        vscode.window.onDidChangeActiveTextEditor(() => {
+        vscode.window.onDidChangeActiveTextEditor(async (e: vscode.TextEditor) => {
+            if (!e) return
+
             hideStatusBarItem()
-            if (ignoreEvent(context)) return
 
-            vscode.commands.executeCommand('extension.csproj',
-                undefined, true)
+            if (ignoreEvent(context, e.document.uri)) return
+
+            await vscode.commands.executeCommand('extension.csproj',
+                e.document.uri, true)
         }),
+
+        watcher.onDidChange((uri: vscode.Uri) => {
+            // Clear cache entry if file is modified
+            delete _cacheXml[uri.fsPath]
+        }),
+
+        watcher,
 
         _statusBarItem = createStatusBarItem()
     );
@@ -51,15 +63,12 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
     console.log('extension.csproj#deactivate');
-    _addedSinceActivate = []
     _cacheXml = Object.create(null)
-    _cacheIndent = Object.create(null)
     hideStatusBarItem()
 }
 
-function ignoreEvent(context: vscode.ExtensionContext) {
-    const {fileName} = vscode.window.activeTextEditor.document;
-    if (!isDesiredFile(context.globalState, fileName))
+function ignoreEvent(context: vscode.ExtensionContext, uri: vscode.Uri) {
+    if (!isDesiredFile(context.globalState, uri.fsPath))
         return true
 
     if (_statusBarItemVisible)
@@ -70,32 +79,32 @@ function ignoreEvent(context: vscode.ExtensionContext) {
 
 async function csprojCommand(
     this: vscode.ExtensionContext,
-    uri: vscode.Uri | undefined = undefined,
+    // Use file path from context or fall back to active document
+    {fsPath}: vscode.Uri = vscode.window.activeTextEditor.document.uri,
     prompt = false
 ) {
-    // Use file path from context menu or fall back to active document
-    const filePath = uri ? uri.fsPath : vscode.window.activeTextEditor.document.fileName
-    const fileName = path.basename(filePath)
+    if (!fsPath) return
+    const fileName = path.basename(fsPath)
     console.log(`extension.csproj#trigger(${fileName})`)
 
     // Skip if we're saving a csproj file, or we are a standalone file without a path.
-    if (filePath.endsWith('.csproj') || !/(\/|\\)/.test(filePath))
+    if (fsPath.endsWith('.csproj') || !/(\/|\\)/.test(fsPath))
         return
 
     try {
-        const csprojPath = await getCsprojPath(path.dirname(filePath))
+        const csprojPath = await getCsprojPath(path.dirname(fsPath))
         const csprojName = path.basename(csprojPath)
-        const filePathRel = path.relative(path.dirname(csprojPath), filePath)
+        const filePathRel = path.relative(path.dirname(csprojPath), fsPath)
 
-        if (!(csprojPath in _cacheXml) || !(csprojPath in _cacheIndent)) {
+        if (!(csprojPath in _cacheXml)) {
             const csprojContent = await readFile(csprojPath)
-            _cacheXml[csprojPath] = <XML>etree.parse(csprojContent)
-            _cacheIndent[csprojPath] = detectIndent(csprojContent)
+            _cacheXml[csprojPath] = <XML>etree.parse(csprojContent, new XMLParser)
         }
 
-        if (_addedSinceActivate.indexOf(filePathRel) > -1
-            || csprojHasFile(_cacheXml[csprojPath], filePathRel))
+        if (csprojHasFile(_cacheXml[csprojPath], filePathRel)) {
+            displayStatusBarItem(csprojName, true)
             return
+        }
 
         let pickResult = (prompt === true)
             ? await vscode.window.showQuickPick([YES, NO, NEVER], {
@@ -106,18 +115,18 @@ async function csprojCommand(
         // Default to "No" action if user blurs the picker
         await (pickActions[pickResult] || pickActions[NO])({
             filePathRel,
-            filePathAbs: filePath,
+            filePathAbs: fsPath,
             fileName,
             csprojName,
             csprojPath,
             csprojXml: _cacheXml[csprojPath],
-            indent: _cacheIndent[csprojPath],
             globalState: this.globalState
         })
 
     } catch (err) {
         if (!(err instanceof NoCsprojError))
             vscode.window.showErrorMessage(err.toString())
+        console.trace(err)
     }
 }
 
@@ -128,19 +137,17 @@ interface ActionArgs {
     csprojPath: string
     csprojXml: XML
     csprojName: string
-    indent: number
     globalState: vscode.Memento
 }
 
 const pickActions = {
-    async [YES]({ filePathRel, fileName, csprojPath, csprojXml, indent }: ActionArgs) {
+    async [YES]({ filePathRel, fileName, csprojPath, csprojXml, csprojName }: ActionArgs) {
         const config = vscode.workspace.getConfiguration("csproj")
         const itemType = config.get<string>('itemType', 'Content')
         addFileToCsproj(csprojXml, filePathRel, itemType)
-        _addedSinceActivate.push(filePathRel)
-        await writeXml(csprojXml, csprojPath, indent)
+        await writeXml(csprojXml, csprojPath)
 
-        hideStatusBarItem()
+        displayStatusBarItem(csprojName, true)
         await vscode.window.showInformationMessage(`Added ${fileName} to ${csprojPath}`)
     },
     [NO]({ csprojName }: ActionArgs) {
@@ -156,8 +163,9 @@ const pickActions = {
     }
 }
 
-function displayStatusBarItem(csprojName: string) {
-    _statusBarItem.text = `Add to ${csprojName}`
+function displayStatusBarItem(csprojName: string, contained = false) {
+    _statusBarItem.text = contained ? `Contained in ${csprojName}` : `Add to ${csprojName}`
+    _statusBarItem.tooltip = _statusBarItem.text
     _statusBarItem.show()
     _statusBarItemVisible = true
 }
@@ -170,7 +178,6 @@ function hideStatusBarItem() {
 
 function createStatusBarItem() {
     const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
-    item.tooltip = "Add to csproj"
     item.command = 'extension.csproj'
     return item
 }
@@ -225,37 +232,29 @@ async function getCsprojPath(fileDir: string, walkUp = true): Promise<string> {
 
 function csprojHasFile(xml: XML, filePathRel: string) {
     const project = xml.getroot()
-    const content = project.find(`./ItemGroup/Content[@Include='${filePathRel}']`)
-    const tsc = project.find(`./ItemGroup/TypeScriptCompile[@Include='${filePathRel}']`)
-    return !!content || !!tsc
+    const match = project.find(`./ItemGroup/*[@Include='${filePathRel}']`)
+    return !!match
 }
 
-async function addFileToCsproj(xml: XML, filePathRel: string, itemType: string) {
-    const itemGroup = xml.getroot().find('./ItemGroup')
+function addFileToCsproj(xml: XML, filePathRel: string, itemType: string) {
+    const itemGroups = xml.getroot().findall('./ItemGroup')
+    const itemGroup = itemGroups.length
+        ? itemGroups[itemGroups.length - 1]
+        : etree.SubElement(xml.getroot(), 'ItemGroup')
     const itemElement = etree.SubElement(itemGroup, itemType)
     itemElement.set('Include', filePathRel)
-}
-
-interface XMLElement {
-    find(xpath: string): XMLElement
-    findall(xpath: string): XMLElement[]
-}
-
-interface XML {
-    getroot(): XMLElement
 }
 
 async function readFile(path: string): Promise<string> {
     return stripBom(await fs.readFile(path, 'utf8'))
 }
 
-function detectIndent(content: string, defaultIndent = 2): number {
-    const firstIndentedLine = content.split('\n')[2]
-    if (!firstIndentedLine.startsWith(' '))
-        return defaultIndent
-    return firstIndentedLine.replace(/[^ ].*/, '').length
-}
-
-async function writeXml(xml: XML, path: string, indent: number) {
-    return await fs.writeFile(path, etree.tostring(xml.getroot(), { indent }))
+async function writeXml(xml: XML, path: string, indent = 2) {
+    const xmlString = xml.write({ indent })
+    // This should be replaced with a regex lookahead on (?=-->) and (?!<!--),
+    // or fixed in elementtree.
+    const xmlFinal = xmlString
+        .replace(/&#xA;/g, '\n')
+        .replace(/&#xD;/g, '\r')
+    await fs.writeFile(path, xmlFinal)
 }
