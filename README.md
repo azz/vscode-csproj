@@ -88,3 +88,9 @@ Fixes:
 
 * Fix handling of comments in csproj. (Preserve them.)
 * Fix incorrect indentation detection in some cases. Hard-code to two-spaces.
+
+### 0.4.0
+
+Features:
+
+* Switch from quick picker to information message with options.

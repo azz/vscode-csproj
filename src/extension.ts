@@ -13,7 +13,7 @@ let _cacheXml: { [path: string]: XML } = Object.create(null)
 let _statusBarItem: vscode.StatusBarItem
 let _statusBarItemVisible = false;
 
-const [YES, NO, NEVER] = ['Yes', 'Not Now (Move to Status Bar)', 'Never For This File']
+const [YES, NO, NEVER] = ['Yes', 'Not Now', 'Never For This File']
 
 export function activate(context: vscode.ExtensionContext) {
     const config = vscode.workspace.getConfiguration("csproj")
@@ -103,13 +103,16 @@ async function csprojCommand(
 
         if (csprojHasFile(_cacheXml[csprojPath], filePathRel)) {
             displayStatusBarItem(csprojName, true)
+            if (!prompt) {
+                await vscode.window.showWarningMessage(`${fileName} is already in ${csprojName}`)
+            }
             return
         }
 
         let pickResult = (prompt === true)
-            ? await vscode.window.showQuickPick([YES, NO, NEVER], {
-                placeHolder: `${fileName} is not in ${csprojName}, would you like to add it?`
-              })
+            ? await vscode.window.showInformationMessage(
+                `${fileName} is not in ${csprojName}, would you like to add it?`,
+                YES, NO, NEVER)
             : YES
 
         // Default to "No" action if user blurs the picker
@@ -125,7 +128,7 @@ async function csprojCommand(
 
     } catch (err) {
         if (!(err instanceof NoCsprojError))
-            vscode.window.showErrorMessage(err.toString())
+            await vscode.window.showErrorMessage(err.toString())
         console.trace(err)
     }
 }
