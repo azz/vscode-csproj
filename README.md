@@ -94,3 +94,16 @@ Fixes:
 Features:
 
 * Switch from quick picker to information message with options.
+
+### 0.4.1
+
+Fixes:
+
+* Output XML much more like Visual Studio.
+  - Use CLRF
+  - Format comments in the same way
+
+Known issues:
+
+* Attributes are sorted lexographically. To disable this, go to
+`node_modules/elementtree/lib/elementtree.js` and delete line 514.
