@@ -23,16 +23,27 @@ Or via the context menu in the file explorer:
 This extension contributes the following settings:
 
 * `csproj.enable`: Enable/disable this extension.
-* `csproj.itemType`: Type of XML element to put in the csproj file. Defaults to `"Content"`.
+* `csproj.itemType`: Mapping from file extension to csproj XML element. Defaults to:
+    ```json
+    { "*": "Content",
+      ".ts": "TypeScriptCompile" }
+    ```
+
 * `csproj.includeRegex`: Regular expression to match files you want to add to csproj.
 * `csproj.excludeRegex`: Regular expression to exclude files you do not want to add to csproj.
 
-If a file matches `includeRegex` *and* `excludeRegex`, it will be excluded.
+    If a file matches `includeRegex` *and* `excludeRegex`, it will be excluded.
 
 The regular expressions will prevent this extension from prompting for action, but it intentionally will not
 prevent you from adding via the command palette or a context menu.
 
 ## Release Notes
+
+### 0.5.0
+
+Features:
+
+* Item type is now configurable based on file extension.
 
 ### 0.4.2
 
