@@ -34,48 +34,26 @@ prevent you from adding via the command palette or a context menu.
 
 ## Release Notes
 
-### 0.0.1
+### 0.4.2
 
-Initial release.
+Improvements:
 
-Features:
+* Use forked version of elementtree for XML parsing. Solution is safer and faster.
+* XML attributes are no longer sorted lexographically.
 
-* Support adding to nearest csproj by walking up the file system tree from current file.
-* Status bar item for items temporarily ignored from csproj.
-* Persistent ignore list for items not to be added to csproj.
-* Caching to prevent excessive csproj reads.
-
-### 0.1.0
-
-Features:
-
-* Support enable/disable configuration.
-* Support custom item types. (Global setting only)
-
-### 0.1.1
+### 0.4.1
 
 Fixes:
 
-* Fix a caching bug when using multiple csproj files.
+* Output XML much more like Visual Studio.
+  - Use CLRF
+  - Format comments in the same way
 
-### 0.1.2
-
-Fixes:
-
-* Fix configuration autocompletion in settings files.
-
-### 0.2.0
+### 0.4.0
 
 Features:
 
-* Context menu item in file explorer.
-* `includeRegex` and `excludeRegex`.
-
-### 0.2.1
-
-Fixes:
-
-* Fix configuration for editor context menu.
+* Switch from quick picker to information message with options.
 
 ### 0.3.0
 
@@ -89,23 +67,45 @@ Fixes:
 * Fix handling of comments in csproj. (Preserve them.)
 * Fix incorrect indentation detection in some cases. Hard-code to two-spaces.
 
-### 0.4.0
-
-Features:
-
-* Switch from quick picker to information message with options.
-
-### 0.4.1
+### 0.2.1
 
 Fixes:
 
-* Output XML much more like Visual Studio.
-  - Use CLRF
-  - Format comments in the same way
+* Fix configuration for editor context menu.
 
-### 0.4.2
+### 0.2.0
 
-Improvements:
+Features:
 
-* Use forked version of elementtree for XML parsing. Solution is safer and faster.
-* XML attributes are no longer sorted lexographically.
+* Context menu item in file explorer.
+* `includeRegex` and `excludeRegex`.
+
+### 0.1.2
+
+Fixes:
+
+* Fix configuration autocompletion in settings files.
+
+### 0.1.1
+
+Fixes:
+
+* Fix a caching bug when using multiple csproj files.
+
+### 0.1.0
+
+Features:
+
+* Support enable/disable configuration.
+* Support custom item types. (Global setting only)
+
+### 0.0.1
+
+Initial release.
+
+Features:
+
+* Support adding to nearest csproj by walking up the file system tree from current file.
+* Status bar item for items temporarily ignored from csproj.
+* Persistent ignore list for items not to be added to csproj.
+* Caching to prevent excessive csproj reads.
