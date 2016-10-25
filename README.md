@@ -103,7 +103,9 @@ Fixes:
   - Use CLRF
   - Format comments in the same way
 
-Known issues:
+### 0.4.2
 
-* Attributes are sorted lexographically. To disable this, go to
-`node_modules/elementtree/lib/elementtree.js` and delete line 514.
+Improvements:
+
+* Use forked version of elementtree for XML parsing. Solution is safer and faster.
+* XML attributes are no longer sorted lexographically.

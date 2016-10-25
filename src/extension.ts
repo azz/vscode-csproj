@@ -4,9 +4,9 @@ import * as vscode from 'vscode'
 import * as fs from 'mz/fs'
 import * as path from 'path'
 
-import XMLParser, {XML, XMLElement} from './parser'
+import {XML, XMLElement} from './parser'
 
-const etree = require('elementtree')
+const etree = require('@derflatulator/elementtree')
 const stripBom = require('strip-bom')
 
 let _cacheXml: { [path: string]: XML } = Object.create(null)
@@ -98,7 +98,7 @@ async function csprojCommand(
 
         if (!(csprojPath in _cacheXml)) {
             const csprojContent = await readFile(csprojPath)
-            _cacheXml[csprojPath] = <XML>etree.parse(csprojContent, new XMLParser)
+            _cacheXml[csprojPath] = <XML>etree.parse(csprojContent)
         }
 
         if (csprojHasFile(_cacheXml[csprojPath], filePathRel)) {
@@ -253,19 +253,11 @@ async function readFile(path: string): Promise<string> {
 }
 
 async function writeXml(xml: XML, path: string, indent = 2) {
-    const xmlString = xml.write({ indent, xml_declaration: false });
-
-    // ElementTree does not encode comments correctly.
-    // This should be replaced with a regex lookahead on (?=-->) and (?!<!--),
-    // or fixed in elementtree.
+    const xmlString = xml.write({ indent });
 
     // Add byte order mark.
-    const xmlFinal = ('\ufeff<?xml version="1.0" encoding="utf-8"?>\n' + xmlString)
-        .replace(/(?!\r)\n/g, '\r\n') // use CRLF
-        .replace(/&#xA;/g, '\n') // should be limited to within comments
-        .replace(/&#xD;/g, '\r') // should be limited to within comments
-        .replace(/&lt;/g, '<') // should be limited to within comments
-        .replace(/&gt;/g, '>') // should be limited to within comments
+    const xmlFinal = ('\ufeff' + xmlString)
+        .replace(/\n/g, '\r\n') // use CRLF
         .replace(/\r?\n$/, '') // no newline at end of file
 
     await fs.writeFile(path, xmlFinal)

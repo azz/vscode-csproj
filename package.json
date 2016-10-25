@@ -2,7 +2,7 @@
     "name": "vscode-csproj",
     "displayName": "VS Code .csproj",
     "description": "Add files to .csproj.",
-    "version": "0.3.0",
+    "version": "0.4.2",
     "publisher": "lucasazzola",
     "engines": {
         "vscode": "^1.5.0"
@@ -85,7 +85,7 @@
     },
     "dependencies": {
         "@types/mz": "0.0.30",
-        "elementtree": "^0.1.6",
+        "@derflatulator/elementtree": "^0.1.7",
         "mz": "^2.4.0",
         "strip-bom": "^3.0.0"
     }
