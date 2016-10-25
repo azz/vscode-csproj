@@ -143,15 +143,20 @@ interface ActionArgs {
     globalState: vscode.Memento
 }
 
+type ItemType = string | { [extension: string]: string }
+
 const pickActions = {
     async [YES]({ filePathRel, fileName, csprojPath, csprojXml, csprojName }: ActionArgs) {
         const config = vscode.workspace.getConfiguration("csproj")
-        const itemType = config.get<string>('itemType', 'Content')
-        addFileToCsproj(csprojXml, filePathRel, itemType)
+        const itemType = config.get<ItemType>('itemType', {
+            '*': 'Content',
+            '.ts': 'TypeScriptCompile'
+        })
+        addFileToCsproj(csprojXml, filePathRel, getTypeForFile(fileName, itemType))
         await writeXml(csprojXml, csprojPath)
 
         displayStatusBarItem(csprojName, true)
-        await vscode.window.showInformationMessage(`Added ${fileName} to ${csprojPath}`)
+        await vscode.window.showInformationMessage(`Added ${fileName} to ${csprojName}`)
     },
     [NO]({ csprojName }: ActionArgs) {
         displayStatusBarItem(csprojName)
@@ -164,6 +169,13 @@ const pickActions = {
             `Added ${fileName} to ignore list, to clear list, ` +
             `run the "csproj: Clear ignored paths"`)
     }
+}
+
+function getTypeForFile(fileName: string, itemType: ItemType): string {
+    const extension = path.extname(fileName);
+    return typeof itemType === 'string'
+        ? itemType
+        : itemType[extension] || itemType['*'] || 'Content'
 }
 
 function displayStatusBarItem(csprojName: string, contained = false) {
