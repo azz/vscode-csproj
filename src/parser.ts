@@ -1,7 +1,4 @@
 
-const etree = require('elementtree')
-const sax: SAX = require('elementtree/lib/parsers/sax')
-
 interface SAX {
     XMLParser: new () => Parser
 }
@@ -22,13 +19,4 @@ export interface XMLElement {
 export interface XML {
     getroot(): XMLElement
     write(opts: any): string
-}
-
-
-export default class XMLParser extends sax.XMLParser {
-    _handleComment(comment: string) {
-        this.target.start(etree.Comment, {})
-        this.target.data(comment)
-        this.target.end(etree.Comment)
-    }
 }
