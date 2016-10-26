@@ -4,14 +4,15 @@ import * as vscode from 'vscode'
 import * as fs from 'mz/fs'
 import * as path from 'path'
 
-import {XML, XMLElement} from './parser'
+import {CsprojAndFile, Csproj, ActionArgs, ItemType} from './types'
+import * as CsprojUtil from './csproj'
+import * as StatusBar from './statusbar'
 
-const etree = require('@derflatulator/elementtree')
-const stripBom = require('strip-bom')
+const debounce = require('lodash.debounce')
 
-let _cacheXml: { [path: string]: XML } = Object.create(null)
-let _statusBarItem: vscode.StatusBarItem
-let _statusBarItemVisible = false;
+const _debounceDeleteTime = 2000
+
+let _csprojRemovals: CsprojAndFile[] = []
 
 const [YES, NO, NEVER] = ['Yes', 'Not Now', 'Never For This File']
 
@@ -22,56 +23,59 @@ export function activate(context: vscode.ExtensionContext) {
 
     console.log('extension.csproj#activate')
 
-    const watcher = vscode.workspace.createFileSystemWatcher('**/*.csproj');
+    const csprojWatcher = vscode.workspace.createFileSystemWatcher('**/*.csproj')
+    const deleteFileWatcher = vscode.workspace.createFileSystemWatcher('**/*', true, true, false)
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('extension.csproj',
+        vscode.commands.registerCommand('extension.csproj.add',
             csprojCommand.bind(context)),
-
-        vscode.commands.registerCommand('extension.csproj_clearIgnoredPaths',
+        vscode.commands.registerCommand('extension.csproj.remove',
+            csprojRemoveCommand.bind(context)),
+        vscode.commands.registerCommand('extension.csproj.clearIgnoredPaths',
             clearIgnoredPathsCommand.bind(context)),
 
         vscode.workspace.onDidSaveTextDocument(async (e: vscode.TextDocument) => {
             if (ignoreEvent(context, e.uri)) return
 
-            await vscode.commands.executeCommand('extension.csproj',
+            await vscode.commands.executeCommand('extension.csproj.add',
                 e.uri, true)
         }),
 
         vscode.window.onDidChangeActiveTextEditor(async (e: vscode.TextEditor) => {
             if (!e) return
 
-            hideStatusBarItem()
+            StatusBar.hideStatusBarItem()
 
             if (ignoreEvent(context, e.document.uri)) return
 
-            await vscode.commands.executeCommand('extension.csproj',
+            await vscode.commands.executeCommand('extension.csproj.add',
                 e.document.uri, true)
         }),
 
-        watcher.onDidChange((uri: vscode.Uri) => {
+        csprojWatcher.onDidChange(uri => {
             // Clear cache entry if file is modified
-            delete _cacheXml[uri.fsPath]
+            CsprojUtil.invalidateCsproj(uri.fsPath)
         }),
 
-        watcher,
+        deleteFileWatcher.onDidDelete(handleFileDeletion),
 
-        _statusBarItem = createStatusBarItem()
-    );
-    _statusBarItemVisible = false
+        csprojWatcher, deleteFileWatcher,
+
+        StatusBar.createStatusBarItem()
+    )
 }
 
 export function deactivate() {
-    console.log('extension.csproj#deactivate');
-    _cacheXml = Object.create(null)
-    hideStatusBarItem()
+    console.log('extension.csproj#deactivate')
+    CsprojUtil.invalidateAllCsproj()
+    StatusBar.hideStatusBarItem()
 }
 
 function ignoreEvent(context: vscode.ExtensionContext, uri: vscode.Uri) {
     if (!isDesiredFile(context.globalState, uri.fsPath))
         return true
 
-    if (_statusBarItemVisible)
+    if (StatusBar.visible())
         return true
 
     return false
@@ -92,121 +96,115 @@ async function csprojCommand(
         return
 
     try {
-        const csprojPath = await getCsprojPath(path.dirname(fsPath))
-        const csprojName = path.basename(csprojPath)
-        const filePathRel = path.relative(path.dirname(csprojPath), fsPath)
+        const csproj = await CsprojUtil.getCsprojForFile(fsPath)
 
-        if (!(csprojPath in _cacheXml)) {
-            const csprojContent = await readFile(csprojPath)
-            _cacheXml[csprojPath] = <XML>etree.parse(csprojContent)
-        }
-
-        if (csprojHasFile(_cacheXml[csprojPath], filePathRel)) {
-            displayStatusBarItem(csprojName, true)
+        if (CsprojUtil.csprojHasFile(csproj, fsPath)) {
+            StatusBar.displayStatusBarItem(csproj.name, true)
             if (!prompt) {
-                await vscode.window.showWarningMessage(`${fileName} is already in ${csprojName}`)
+                await vscode.window.showWarningMessage(`${fileName} is already in ${csproj.name}`)
             }
             return
         }
 
         let pickResult = (prompt === true)
             ? await vscode.window.showInformationMessage(
-                `${fileName} is not in ${csprojName}, would you like to add it?`,
+                `${fileName} is not in ${csproj.name}, would you like to add it?`,
                 YES, NO, NEVER)
             : YES
 
         // Default to "No" action if user blurs the picker
         await (pickActions[pickResult] || pickActions[NO])({
-            filePathRel,
-            filePathAbs: fsPath,
+            filePath: fsPath,
             fileName,
-            csprojName,
-            csprojPath,
-            csprojXml: _cacheXml[csprojPath],
+            csproj,
             globalState: this.globalState
         })
 
     } catch (err) {
-        if (!(err instanceof NoCsprojError))
+        if (!(err instanceof CsprojUtil.NoCsprojError)) {
             await vscode.window.showErrorMessage(err.toString())
-        console.trace(err)
+            console.trace(err)
+        } else {
+            console.log(`extension.csproj#trigger(${fileName}): no csproj found`)
+        }
     }
 }
 
-interface ActionArgs {
-    filePathRel: string
-    filePathAbs: string
-    fileName: string
-    csprojPath: string
-    csprojXml: XML
-    csprojName: string
-    globalState: vscode.Memento
-}
-
-type ItemType = string | { [extension: string]: string }
-
 const pickActions = {
-    async [YES]({ filePathRel, fileName, csprojPath, csprojXml, csprojName }: ActionArgs) {
+    async [YES]({ filePath, fileName, csproj }: ActionArgs) {
         const config = vscode.workspace.getConfiguration("csproj")
         const itemType = config.get<ItemType>('itemType', {
             '*': 'Content',
             '.ts': 'TypeScriptCompile'
         })
-        addFileToCsproj(csprojXml, filePathRel, getTypeForFile(fileName, itemType))
-        await writeXml(csprojXml, csprojPath)
+        CsprojUtil.addFileToCsproj(csproj, filePath, getTypeForFile(fileName, itemType))
+        await CsprojUtil.persistCsproj(csproj)
 
-        displayStatusBarItem(csprojName, true)
-        await vscode.window.showInformationMessage(`Added ${fileName} to ${csprojName}`)
+        StatusBar.displayStatusBarItem(csproj.name, true)
+        await vscode.window.showInformationMessage(`Added ${fileName} to ${csproj.name}`)
     },
-    [NO]({ csprojName }: ActionArgs) {
-        displayStatusBarItem(csprojName)
+    [NO]({ csproj }: ActionArgs) {
+        StatusBar.displayStatusBarItem(csproj.name, false)
     },
-    async [NEVER]({ filePathAbs, globalState, fileName }: ActionArgs) {
-        await updateIgnoredPaths(globalState, filePathAbs)
+    async [NEVER]({ filePath, globalState, fileName }: ActionArgs) {
+        await updateIgnoredPaths(globalState, filePath)
 
-        hideStatusBarItem()
+        StatusBar.hideStatusBarItem()
         await vscode.window.showInformationMessage(
             `Added ${fileName} to ignore list, to clear list, ` +
             `run the "csproj: Clear ignored paths"`)
     }
 }
 
+async function handleFileDeletion({fsPath}: vscode.Uri) {
+    try {
+        const csproj = await CsprojUtil.getCsprojForFile(fsPath)
+        if (!CsprojUtil.csprojHasFile(csproj, fsPath))
+            return
+
+        _csprojRemovals.push({ csproj, filePath: fsPath })
+        await debouncedRemoveFromCsproj(
+            _csprojRemovals,
+            () => { _csprojRemovals = [] }
+        )
+    } catch (err) {
+        console.trace(err)
+    }
+}
+
+const debouncedRemoveFromCsproj = debounce(
+    async (removals: CsprojAndFile[], onCall: Function) => {
+        onCall()
+
+        CsprojUtil.disableInvalidation()
+
+        const message = removals.length > 1
+            ? multiDeleteMessage(removals.map(rem => rem.filePath))
+            : singleDeleteMessage(removals[0].csproj, removals[0].filePath)
+
+        const doDelete = await vscode.window.showWarningMessage(message, YES) === YES
+        if (doDelete) {
+            for (const {filePath, csproj} of removals) {
+                await vscode.commands.executeCommand('extension.csproj.remove', {fsPath: filePath}, csproj)
+            }
+        }
+
+        CsprojUtil.enableInvalidation()
+    },
+    _debounceDeleteTime
+)
+
 function getTypeForFile(fileName: string, itemType: ItemType): string {
-    const extension = path.extname(fileName);
+    const extension = path.extname(fileName)
     return typeof itemType === 'string'
         ? itemType
         : itemType[extension] || itemType['*'] || 'Content'
 }
 
-function displayStatusBarItem(csprojName: string, contained = false) {
-    _statusBarItem.text = contained ? `Contained in ${csprojName}` : `Add to ${csprojName}`
-    _statusBarItem.tooltip = _statusBarItem.text
-    _statusBarItem.show()
-    _statusBarItemVisible = true
-}
-
-function hideStatusBarItem() {
-    _statusBarItem.text = ''
-    _statusBarItem.hide()
-    _statusBarItemVisible = false
-}
-
-function createStatusBarItem() {
-    const item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left)
-    item.command = 'extension.csproj'
-    return item
-}
-
-async function updateIgnoredPaths(globalState: vscode.Memento, addPath: string) {
-    const list = globalState.get<string[]>('csproj.ignorePaths') || []
-    list.push(addPath)
-    await globalState.update('csproj.ignorePaths', list)
-}
-
 function isDesiredFile(globalState: vscode.Memento, queryPath: string) {
     const config = vscode.workspace.getConfiguration("csproj")
 
-    const ignorePaths = globalState.get<string[]>('csproj.ignorePaths') || [];
+    const ignorePaths = globalState.get<string[]>('csproj.ignorePaths') || []
     if (ignorePaths.indexOf(queryPath) > -1)
         return false
 
@@ -226,51 +224,47 @@ function clearIgnoredPathsCommand(this: vscode.ExtensionContext) {
     this.globalState.update('csproj.ignorePaths', [])
 }
 
-class NoCsprojError extends Error {}
+async function updateIgnoredPaths(globalState: vscode.Memento, addPath: string) {
+    const list = globalState.get<string[]>('csproj.ignorePaths') || []
+    list.push(addPath)
+    await globalState.update('csproj.ignorePaths', list)
+}
 
-async function getCsprojPath(fileDir: string, walkUp = true): Promise<string> {
-    if (!path.isAbsolute(fileDir))
-        fileDir = path.resolve(fileDir)
+function singleDeleteMessage(csproj: Csproj, filePath: string) {
+    const fileName = path.basename(filePath)
+    return `${fileName} was deleted. Remove it from ${csproj.name}?`
+}
 
-    const files = await fs.readdir(fileDir)
-    const csproj = files.find(file => file.endsWith('.csproj'))
-    if (csproj)
-        return path.resolve(fileDir, csproj)
-    if (walkUp) {
-        const parent = path.resolve(fileDir, '..')
-        if (parent === fileDir)
-            throw new NoCsprojError('Reached fs root, no csproj found')
-        return getCsprojPath(parent)
+function multiDeleteMessage(filePaths: string[]) {
+    return `${filePaths.length} files were deleted. Remove them from csproj?`
+}
+
+async function csprojRemoveCommand(
+    this: vscode.ExtensionContext,
+    // Use file path from context or fall back to active document
+    {fsPath}: vscode.Uri = vscode.window.activeTextEditor.document.uri,
+    csproj?: Csproj
+) {
+    const csprojProvided = !!csproj
+    if (!csproj) {
+        try {
+            csproj = await CsprojUtil.getCsprojForFile(fsPath)
+        } catch (err) {
+            if (err instanceof CsprojUtil.NoCsprojError) {
+                const fileName = path.basename(fsPath)
+                await vscode.window.showErrorMessage(`Unable to locate csproj for file: ${fileName}`)
+            } else {
+                console.trace(err)
+            }
+            return
+        }
     }
-    throw new NoCsprojError(`No csproj found in current directory: ${fileDir}`)
-}
 
-function csprojHasFile(xml: XML, filePathRel: string) {
-    const project = xml.getroot()
-    const match = project.find(`./ItemGroup/*[@Include='${filePathRel}']`)
-    return !!match
-}
-
-function addFileToCsproj(xml: XML, filePathRel: string, itemType: string) {
-    const itemGroups = xml.getroot().findall('./ItemGroup')
-    const itemGroup = itemGroups.length
-        ? itemGroups[itemGroups.length - 1]
-        : etree.SubElement(xml.getroot(), 'ItemGroup')
-    const itemElement = etree.SubElement(itemGroup, itemType)
-    itemElement.set('Include', filePathRel)
-}
-
-async function readFile(path: string): Promise<string> {
-    return stripBom(await fs.readFile(path, 'utf8'))
-}
-
-async function writeXml(xml: XML, path: string, indent = 2) {
-    const xmlString = xml.write({ indent });
-
-    // Add byte order mark.
-    const xmlFinal = ('\ufeff' + xmlString)
-        .replace(/\n/g, '\r\n') // use CRLF
-        .replace(/\r?\n$/, '') // no newline at end of file
-
-    await fs.writeFile(path, xmlFinal)
+    try {
+        CsprojUtil.removeFileFromCsproj(csproj, fsPath)
+        await CsprojUtil.persistCsproj(csproj)
+    } catch (err) {
+        await vscode.window.showErrorMessage(err.toString())
+        console.trace(err)
+    }
 }

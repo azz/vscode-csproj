@@ -18,17 +18,21 @@
     "contributes": {
         "commands": [
             {
-                "command": "extension.csproj",
+                "command": "extension.csproj.add",
                 "title": "csproj: Include In Project"
             },
             {
-                "command": "extension.csproj_clearIgnoredPaths",
+                "command": "extension.csproj.remove",
+                "title": "csproj: Remove from Project"
+            },
+            {
+                "command": "extension.csproj.clearIgnoredPaths",
                 "title": "csproj: Clear Ignored Paths"
             }
         ],
         "configuration": {
             "type": "object",
-            "title": "Add to .csproj configuration",
+            "title": "csproj configuration",
             "properties": {
                 "csproj.enabled": {
                     "type": "boolean",
@@ -67,7 +71,11 @@
         "menus": {
             "explorer/context": [
                 {
-                    "command": "extension.csproj",
+                    "command": "extension.csproj.add",
+                    "group": "1_modification"
+                },
+                {
+                    "command": "extension.csproj.remove",
                     "group": "1_modification"
                 }
             ]
@@ -90,8 +98,9 @@
         "url": "https://github.com/DerFlatulator/vscode-csproj"
     },
     "dependencies": {
-        "@types/mz": "0.0.30",
         "@derflatulator/elementtree": "^0.1.7",
+        "@types/mz": "0.0.30",
+        "lodash.debounce": "^4.0.8",
         "mz": "^2.4.0",
         "strip-bom": "^3.0.0"
     }
