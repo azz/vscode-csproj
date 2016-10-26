@@ -17,7 +17,7 @@ let _csprojRemovals: CsprojAndFile[] = []
 const [YES, NO, NEVER] = ['Yes', 'Not Now', 'Never For This File']
 
 export function activate(context: vscode.ExtensionContext) {
-    const config = vscode.workspace.getConfiguration("csproj")
+    const config = getConfig()
     if (!config.get<boolean>('enabled', true))
         return
 
@@ -79,6 +79,10 @@ function ignoreEvent(context: vscode.ExtensionContext, uri: vscode.Uri) {
         return true
 
     return false
+}
+
+function getConfig() {
+    return vscode.workspace.getConfiguration("csproj")
 }
 
 async function csprojCommand(
@@ -182,7 +186,9 @@ const debouncedRemoveFromCsproj = debounce(
             ? multiDeleteMessage(removals.map(rem => rem.filePath))
             : singleDeleteMessage(removals[0].csproj, removals[0].filePath)
 
-        const doDelete = await vscode.window.showWarningMessage(message, YES) === YES
+        const doDelete = getConfig().get('silentDeletion', false)
+            || await vscode.window.showWarningMessage(message, YES) === YES
+
         if (doDelete) {
             for (const {filePath, csproj} of removals) {
                 await vscode.commands.executeCommand('extension.csproj.remove', {fsPath: filePath}, csproj)

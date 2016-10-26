@@ -65,6 +65,11 @@
                     ],
                     "default": null,
                     "description": "A regular expression to exclude file paths by."
+                },
+                "csproj.silentDeletion": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Silently delete items from csproj when their corresponding files are removed?"
                 }
             }
         },
