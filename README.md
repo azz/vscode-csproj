@@ -29,6 +29,7 @@ This extension contributes the following settings:
       ".ts": "TypeScriptCompile" }
     ```
 
+* `csproj.silentDeletion`: Silently delete items from csproj when their corresponding files are removed. Default: `false`.
 * `csproj.includeRegex`: Regular expression to match files you want to add to csproj.
 * `csproj.excludeRegex`: Regular expression to exclude files you do not want to add to csproj.
 
@@ -38,6 +39,10 @@ The regular expressions will prevent this extension from prompting for action, b
 prevent you from adding via the command palette or a context menu.
 
 ## Release Notes
+
+### WIP
+
+* Deletion support. Watches for file deletions, and adds "Remove from Project" to the context menu.
 
 ### 0.5.0
 
