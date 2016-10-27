@@ -1,98 +1,119 @@
 {
-    "name": "vscode-csproj",
-    "displayName": "VS Code .csproj",
-    "description": "Add files to .csproj.",
-    "version": "0.5.1",
-    "publisher": "lucasazzola",
-    "engines": {
-        "vscode": "^1.5.0"
-    },
-    "categories": [
-        "Other"
+  "name": "vscode-csproj",
+  "displayName": "VS Code .csproj",
+  "description": "Add files to .csproj.",
+  "version": "0.5.1",
+  "publisher": "lucasazzola",
+  "engines": {
+    "vscode": "^1.5.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "icon": "img/icon.png",
+  "main": "./out/src/extension",
+  "contributes": {
+    "commands": [
+      {
+        "command": "extension.csproj.add",
+        "title": "csproj: Include In Project"
+      },
+      {
+        "command": "extension.csproj.remove",
+        "title": "csproj: Remove from Project"
+      },
+      {
+        "command": "extension.csproj.clearIgnoredPaths",
+        "title": "csproj: Clear Ignored Paths"
+      }
     ],
-    "activationEvents": [
-        "*"
-    ],
-    "icon": "img/icon.png",
-    "main": "./out/src/extension",
-    "contributes": {
-        "commands": [
-            {
-                "command": "extension.csproj",
-                "title": "csproj: Include In Project"
-            },
-            {
-                "command": "extension.csproj_clearIgnoredPaths",
-                "title": "csproj: Clear Ignored Paths"
-            }
-        ],
-        "configuration": {
-            "type": "object",
-            "title": "Add to .csproj configuration",
-            "properties": {
-                "csproj.enabled": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Turn this extension on or off."
-                },
-                "csproj.itemType": {
-                    "type": [
-                        "string",
-                        "object"
-                    ],
-                    "default": {
-                        "*": "Content",
-                        ".ts": "TypeScriptCompile"
-                    },
-                    "description": "Type of XML element to put in the csproj file."
-                },
-                "csproj.includeRegex": {
-                    "type": [
-                        "string",
-                        "null"
-                    ],
-                    "default": ".*",
-                    "description": "A regular expression to include file paths by."
-                },
-                "csproj.excludeRegex": {
-                    "type": [
-                        "string",
-                        "null"
-                    ],
-                    "default": null,
-                    "description": "A regular expression to exclude file paths by."
-                }
-            }
+    "configuration": {
+      "type": "object",
+      "title": "csproj configuration",
+      "properties": {
+        "csproj.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Turn this extension on or off."
         },
-        "menus": {
-            "explorer/context": [
-                {
-                    "command": "extension.csproj",
-                    "group": "1_modification"
-                }
-            ]
+        "csproj.itemType": {
+          "type": [
+            "string",
+            "object"
+          ],
+          "default": {
+            "*": "Content",
+            ".ts": "TypeScriptCompile"
+          },
+          "description": "Type of XML element to put in the csproj file."
+        },
+        "csproj.includeRegex": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": ".*",
+          "description": "A regular expression to include file paths by."
+        },
+        "csproj.excludeRegex": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "A regular expression to exclude file paths by."
+        },
+        "csproj.silentDeletion": {
+          "type": "boolean",
+          "default": false,
+          "description": "Silently delete items from csproj when their corresponding files are removed?"
         }
+      }
     },
-    "scripts": {
-        "vscode:prepublish": "tsc -p ./",
-        "compile": "tsc -watch -p ./",
-        "postinstall": "node ./node_modules/vscode/bin/install"
-    },
-    "devDependencies": {
-        "typescript": "^2.0.3",
-        "vscode": "^1.0.0",
-        "mocha": "^2.3.3",
-        "@types/node": "^6.0.40",
-        "@types/mocha": "^2.2.32"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/DerFlatulator/vscode-csproj"
-    },
-    "dependencies": {
-        "@types/mz": "0.0.30",
-        "@derflatulator/elementtree": "^0.1.7",
-        "mz": "^2.4.0",
-        "strip-bom": "^3.0.0"
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "extension.csproj.add",
+          "group": "1_modification"
+        },
+        {
+          "command": "extension.csproj.remove",
+          "group": "1_modification"
+        }
+      ]
     }
+  },
+  "scripts": {
+    "vscode:prepublish": "tsc -p ./",
+    "compile": "tsc -watch -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "devDependencies": {
+    "@types/chai": "^3.4.34",
+    "@types/mocha": "^2.2.32",
+    "@types/mock-fs": "^3.6.29",
+    "@types/node": "^6.0.40",
+    "@types/sinon": "^1.16.31",
+    "chai": "^3.5.0",
+    "mocha": "^2.3.3",
+    "mock-fs": "^3.11.0",
+    "sinon": "^1.17.6",
+    "typescript": "^2.0.3",
+    "vscode": "^1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DerFlatulator/vscode-csproj"
+  },
+  "dependencies": {
+    "@derflatulator/elementtree": "^0.1.7",
+    "@types/mz": "0.0.30",
+    "lodash.debounce": "^4.0.8",
+    "mz": "^2.4.0",
+    "strip-bom": "^3.0.0",
+    "walk": "^2.3.9"
+  }
 }
