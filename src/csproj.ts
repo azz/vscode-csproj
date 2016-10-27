@@ -48,20 +48,20 @@ export function addFile(csproj: Csproj, filePath: string, itemType: string) {
     itemElement.set('Include', relativeTo(csproj, filePath))
 }
 
-export function removeFile(csproj: Csproj, filePath: string) {
+export function removeFile(csproj: Csproj, filePath: string, directory = false): boolean {
     const root = csproj.xml.getroot()
     const filePathRel = relativeTo(csproj, filePath)
     const itemGroups = root.findall('./ItemGroup')
     const found = itemGroups.some(itemGroup => {
-        const element = itemGroup.find(`./*[@Include='${filePathRel}']`)
-        if (element) {
+        const elements = directory
+            ? itemGroup.findall(`./*[@Include]`).filter(element => element.attrib['Include'].startsWith(filePathRel))
+            : itemGroup.findall(`./*[@Include='${filePathRel}']`)
+        for (const element of elements) {
             itemGroup.remove(element)
-            return true
         }
-        return false
+        return elements.length > 0
     })
-    if (!found)
-        throw new Error(`could not file file ${filePathRel} in csproj ${csproj.name}`)
+    return found
 }
 
 async function readFile(path: string): Promise<string> {
