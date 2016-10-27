@@ -11,7 +11,7 @@ export class NoCsprojError extends Error {}
 
 let _cacheXml: { [path: string]: XML } = Object.create(null)
 
-export async function getCsprojPath(fileDir: string, walkUp = true): Promise<string> {
+export async function getPath(fileDir: string, walkUp = true): Promise<string> {
     if (!path.isAbsolute(fileDir))
         fileDir = path.resolve(fileDir)
 
@@ -23,34 +23,34 @@ export async function getCsprojPath(fileDir: string, walkUp = true): Promise<str
         const parent = path.resolve(fileDir, '..')
         if (parent === fileDir)
             throw new NoCsprojError('Reached fs root, no csproj found')
-        return getCsprojPath(parent)
+        return getPath(parent)
     }
     throw new NoCsprojError(`No csproj found in current directory: ${fileDir}`)
 }
 
-export function csprojHasFile(csproj: Csproj, filePath: string) {
-    const filePathRel = relativeToCsproj(csproj, filePath)
+export function hasFile(csproj: Csproj, filePath: string) {
+    const filePathRel = relativeTo(csproj, filePath)
     const project = csproj.xml.getroot()
     const match = project.find(`./ItemGroup/*[@Include='${filePathRel}']`)
     return !!match
 }
 
-export function relativeToCsproj(csproj: Csproj, filePath: string) {
+export function relativeTo(csproj: Csproj, filePath: string) {
     return path.relative(path.dirname(csproj.fsPath), filePath)
 }
 
-export function addFileToCsproj(csproj: Csproj, filePath: string, itemType: string) {
+export function addFile(csproj: Csproj, filePath: string, itemType: string) {
     const itemGroups = csproj.xml.getroot().findall('./ItemGroup')
     const itemGroup = itemGroups.length
         ? itemGroups[itemGroups.length - 1]
         : etree.SubElement(csproj.xml.getroot(), 'ItemGroup')
     const itemElement = etree.SubElement(itemGroup, itemType)
-    itemElement.set('Include', relativeToCsproj(csproj, filePath))
+    itemElement.set('Include', relativeTo(csproj, filePath))
 }
 
-export function removeFileFromCsproj(csproj: Csproj, filePath: string) {
+export function removeFile(csproj: Csproj, filePath: string) {
     const root = csproj.xml.getroot()
-    const filePathRel = relativeToCsproj(csproj, filePath)
+    const filePathRel = relativeTo(csproj, filePath)
     const itemGroups = root.findall('./ItemGroup')
     const found = itemGroups.some(itemGroup => {
         const element = itemGroup.find(`./*[@Include='${filePathRel}']`)
@@ -68,7 +68,7 @@ async function readFile(path: string): Promise<string> {
     return stripBom(await fs.readFile(path, 'utf8'))
 }
 
-export async function persistCsproj(csproj: Csproj, indent = 2) {
+export async function persist(csproj: Csproj, indent = 2) {
     const xmlString = csproj.xml.write({ indent })
 
     // Add byte order mark.
@@ -79,14 +79,14 @@ export async function persistCsproj(csproj: Csproj, indent = 2) {
     await fs.writeFile(csproj.fsPath, xmlFinal)
 }
 
-export async function getCsprojForFile(filePath: string): Promise<Csproj> {
-    const fsPath = await getCsprojPath(path.dirname(filePath))
+export async function forFile(filePath: string): Promise<Csproj> {
+    const fsPath = await getPath(path.dirname(filePath))
     const name = path.basename(fsPath)
-    const xml = await loadCsproj(fsPath)
+    const xml = await load(fsPath)
     return { fsPath, name, xml }
 }
 
-async function loadCsproj(csprojPath: string) {
+async function load(csprojPath: string) {
     if (!(csprojPath in _cacheXml)) {
         const csprojContent = await readFile(csprojPath)
         _cacheXml[csprojPath] = <XML>etree.parse(csprojContent)
@@ -99,11 +99,11 @@ let _doInvalidation = true
 export function disableInvalidation() { _doInvalidation = false }
 export function enableInvalidation() { _doInvalidation = true }
 
-export function invalidateCsproj(filePath: string) {
+export function invalidate(filePath: string) {
     if (_doInvalidation)
         delete _cacheXml[filePath]
 }
 
-export function invalidateAllCsproj() {
+export function invalidateAll() {
     _cacheXml = Object.create(null)
 }
