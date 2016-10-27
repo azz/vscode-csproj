@@ -13,6 +13,7 @@ export interface CsprojAndFile {
 
 export interface ActionArgs extends CsprojAndFile {
     fileName: string
+    bulkMode: boolean
     globalState: Memento
 }
 
@@ -22,6 +23,8 @@ export interface XMLElement {
     find(xpath: string): XMLElement
     findall(xpath: string): XMLElement[]
     remove(child: XMLElement): void
+
+    attrib: { [attribute: string]: string }
 }
 
 export interface XML {
