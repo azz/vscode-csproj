@@ -40,9 +40,12 @@ prevent you from adding via the command palette or a context menu.
 
 ## Release Notes
 
-### WIP
+### 0.6.0
 
 * Deletion support. Watches for file deletions, and adds "Remove from Project" to the context menu.
+* Directory support.
+  - Selecting "Include in Project" on a directory will add all files that match the config to csproj.
+  - Selecting "Remove from Project" will remove all files within the directory from the relevany csproj file(s).
 
 ### 0.5.0
 
