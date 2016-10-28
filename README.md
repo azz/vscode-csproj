@@ -2,11 +2,17 @@
 
 This extension will prompt you to add files to the .csproj file used by Visual Studio. This is useful if you work in a team that uses both VS Code and Visual Studio.
 
+## Demo
+
+![DemoGif](img/demo.gif "Demonstration")
+
+## How it Works
+
 When you switch to or save a file not in the nearest `.csproj` up the file system tree, you will prompted.
 
 ![Prompt](img/demo-prompt.png "Prompt")
 
-Choosing "Not Now" will add an item to the status bar and stop asking you while you have the file open.
+Choosing "Close" will add an item to the status bar and stop asking you while you have the file open.
 
 ![StatusBar](img/demo-status-bar.png "Status Bar")
 
