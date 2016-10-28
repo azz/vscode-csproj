@@ -7,7 +7,6 @@ import * as path from 'path'
 import {CsprojAndFile, Csproj, ActionArgs, ItemType} from './types'
 import * as CsprojUtil from './csproj'
 import * as StatusBar from './statusbar'
-import {processFiles} from './walker'
 
 const {window, commands, workspace} = vscode
 const debounce = require('lodash.debounce')
@@ -46,7 +45,6 @@ export function activate(context: vscode.ExtensionContext) {
             if (!e) return
 
             StatusBar.hideItem()
-
             if (ignoreEvent(context, e.document.uri)) return
 
             await commands.executeCommand('extension.csproj.add',
@@ -176,16 +174,19 @@ const pickActions = {
 
 async function csprojAddDirectory(this: vscode.ExtensionContext, fsPath: string) {
     const changedCsprojs: Csproj[] = []
-    const results = await processFiles(fsPath, async filePath => {
-        if (!isDesiredFile(this.globalState, filePath))
-            return
 
-        const csproj: Csproj = await csprojCommand.call(this, {fsPath: filePath}, false, true)
+    const files = await workspace.findFiles(
+        path.join(workspace.asRelativePath(fsPath), '**'),
+        ''
+    )
+    for (const file of files.filter(file => isDesiredFile(this.globalState, file.fsPath))) {
+        const csproj: Csproj = await csprojCommand.call(this, file, false, true)
         if (csproj) {
             if (!changedCsprojs.find(_csproj => _csproj.fsPath === csproj.fsPath))
                 changedCsprojs.push(csproj)
         }
-    })
+    }
+
     for (const csproj of changedCsprojs)
         CsprojUtil.persist(csproj)
 }
@@ -246,7 +247,7 @@ function getTypeForFile(fileName: string, itemType: ItemType): string {
 }
 
 function isDesiredFile(globalState: vscode.Memento, queryPath: string) {
-    const config = workspace.getConfiguration("csproj")
+    const config = workspace.getConfiguration('csproj')
 
     const ignorePaths = globalState.get<string[]>('csproj.ignorePaths') || []
     if (ignorePaths.indexOf(queryPath) > -1)
@@ -295,35 +296,32 @@ async function csprojRemoveCommand(
 
     const csprojProvided = !!csproj
     if (!csproj) {
-        try {
-            csproj = await CsprojUtil.forFile(fsPath)
-        } catch (err) {
-            if (err instanceof CsprojUtil.NoCsprojError) {
-                const fileName = path.basename(fsPath)
-                await window.showErrorMessage(`Unable to locate csproj for file: ${fileName}`)
-            } else {
-                console.trace(err)
-            }
-            return
-        }
+        csproj = await getCsproj(fsPath)
+        if (!csproj) return
     }
 
     try {
         const removed = CsprojUtil.removeFile(csproj, fsPath, wasDir)
-        // Do not persist if a csproj was passed to the command.
-        // Assume that the caller will persist after the command executes.
         await CsprojUtil.persist(csproj)
         if (!removed && !bulkMode) {
             window.showWarningMessage(`${fileName} was not found in ${csproj.name}`)
         }
     } catch (err) {
-        await window.showErrorMessage(err.toString())
+        window.showErrorMessage(err.toString())
         console.trace(err)
     }
 }
 
-// async function csprojRemoveDirectory(fsPath: string, csproj?: Csproj) {
-//     await processFiles(fsPath, async filePath => {
-//         await csprojRemoveCommand.call(this, {fsPath: filePath}, undefined, true)
-//     })
-// }
+async function getCsproj(fsPath: string) {
+    try {
+        return await CsprojUtil.forFile(fsPath)
+    } catch (err) {
+        if (err instanceof CsprojUtil.NoCsprojError) {
+            const fileName = path.basename(fsPath)
+            await window.showErrorMessage(`Unable to locate csproj for file: ${fileName}`)
+        } else {
+            console.trace(err)
+        }
+        return
+    }
+}

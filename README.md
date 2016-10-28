@@ -40,6 +40,13 @@ prevent you from adding via the command palette or a context menu.
 
 ## Release Notes
 
+### 0.6.1
+
+Improvements:
+
+* When adding a directory to csproj, respect the `files.exclude` configuration as well as the existing
+  `csproj.includeRegex` and `csproj.excludeRegex`. In other words, files not within your worspace will not be added.
+
 ### 0.6.0
 
 * Deletion support. Watches for file deletions, and adds "Remove from Project" to the context menu.
