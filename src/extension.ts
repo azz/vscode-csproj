@@ -225,16 +225,10 @@ const debouncedRemoveFromCsproj = debounce(
             return
         }
 
-        // const changedCsprojs: Csproj[] = []
         for (const {filePath, csproj} of removals) {
-            await commands.executeCommand('extension.csproj.remove', {fsPath: filePath}, csproj, true)
-            // if (!changedCsprojs.find(_csproj => _csproj.fsPath === csproj.fsPath))
-            //     changedCsprojs.push(csproj)
+            await commands.executeCommand('extension.csproj.remove',
+                {fsPath: filePath}, csproj, true)
         }
-        // for (const csproj of changedCsprojs) {
-        //     await CsprojUtil.persist(csproj)
-        // }
-
     },
     _debounceDeleteTime
 )
@@ -293,12 +287,16 @@ async function csprojRemoveCommand(
 ): Promise<Csproj | void> {
     const wasDir = wasDirectory(fsPath)
     const fileName = path.basename(fsPath)
+    console.log(`extension.csproj#remove(${fileName})`)
 
     const csprojProvided = !!csproj
-    if (!csproj) {
-        csproj = await getCsproj(fsPath)
-        if (!csproj) return
+    if (csproj) {
+        csproj = CsprojUtil.ensureValid(csproj)
+    } else {
+        csproj = await getCsprojForFile(fsPath)
     }
+
+    if (!csproj) return
 
     try {
         const removed = CsprojUtil.removeFile(csproj, fsPath, wasDir)
@@ -312,7 +310,7 @@ async function csprojRemoveCommand(
     }
 }
 
-async function getCsproj(fsPath: string) {
+async function getCsprojForFile(fsPath: string) {
     try {
         return await CsprojUtil.forFile(fsPath)
     } catch (err) {
