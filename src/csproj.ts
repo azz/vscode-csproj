@@ -77,6 +77,9 @@ export async function persist(csproj: Csproj, indent = 2) {
         .replace(/\r?\n$/, '') // no newline at end of file
 
     await fs.writeFile(csproj.fsPath, xmlFinal)
+
+    // Ensure that that cached XML is up-to-date
+    _cacheXml[csproj.fsPath] = csproj.xml
 }
 
 export async function forFile(filePath: string): Promise<Csproj> {
@@ -84,6 +87,12 @@ export async function forFile(filePath: string): Promise<Csproj> {
     const name = path.basename(fsPath)
     const xml = await load(fsPath)
     return { fsPath, name, xml }
+}
+
+export function ensureValid(csproj: Csproj) {
+    return Object.assign({}, csproj, {
+        xml: _cacheXml[csproj.fsPath]
+    })
 }
 
 async function load(csprojPath: string) {
@@ -95,9 +104,6 @@ async function load(csprojPath: string) {
 }
 
 let _doInvalidation = true
-
-export function disableInvalidation() { _doInvalidation = false }
-export function enableInvalidation() { _doInvalidation = true }
 
 export function invalidate(filePath: string) {
     if (_doInvalidation)
