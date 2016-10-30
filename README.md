@@ -11,29 +11,29 @@ This is useful if you work in a team that uses both VS Code and Visual Studio.
 
 ### Removing Files from a Project
 
-| **Single File Deletion**        | **Multiple File Deletion**     |
-|---------------------------------|--------------------------------|
-| ![](img/demo-single-delete.gif) | ![](img/demo-multi-delete.gif) |
+| **Single File Deletion**  | **Multiple File Deletion**
+|---------------------------|--------------------------------
+| ![Single deletion example](img/demo-single-delete.gif) | ![Multiple deletion example](img/demo-multi-delete.gif)
 
 ## How it Works
 
 When you switch to or save a file not in the nearest `.csproj` up the file system tree, you will prompted.
 
-![](img/demo-prompt.png "Prompt")
+![Prompt](img/demo-prompt.png "Prompt")
 
 Choosing "Close" will add an item to the status bar and stop asking you while you have the file open.
 
-| **File Not in csproj** | **File Contained in csproj** |
-|------------------------|------------------------------|
-| ![](img/demo-status-bar.png) | ![](img/demo-status-bar-contained.png)
+| **File Not in csproj** | **File Contained in csproj**
+|------------------------|------------------------------
+| ![Add to csproj](img/demo-status-bar.png) | ![Contained in csproj](img/demo-status-bar-contained.png)
 
 You can add a file to csproj via the command palette:
 
-![](img/demo-command.png "Command Palette")
+![Command Palette](img/demo-command.png "Command Palette")
 
 Or via the context menu in the file explorer:
 
-![](img/demo-context-menu.png "Context Menu")
+![Context Menu](img/demo-context-menu.png "Context Menu")
 
 ## Extension Settings
 
