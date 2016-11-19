@@ -61,7 +61,7 @@ a directory, `files.exclude`, your saved ignore list, `csproj.includeRegex` and 
 
 ## Release Notes
 
-### Most Recent Release (0.6.4)
+### Most Recent Release (0.6.5)
 
 Fixes:
 
