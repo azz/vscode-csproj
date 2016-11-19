@@ -37,6 +37,7 @@ export function hasFile(csproj: Csproj, filePath: string) {
 
 export function relativeTo(csproj: Csproj, filePath: string) {
     return path.relative(path.dirname(csproj.fsPath), filePath)
+        .replace(/\//g, '\\') // use Windows style paths for consistency
 }
 
 export function addFile(csproj: Csproj, filePath: string, itemType: string) {
