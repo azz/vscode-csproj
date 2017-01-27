@@ -68,3 +68,7 @@ Fixes:
 * Fix an issue with Mac/*NIX paths that caused repeated prompting for the same file.
 
 ### See GitHub for [full release history](https://github.com/DerFlatulator/vscode-csproj/releases)
+
+## License
+
+MIT
