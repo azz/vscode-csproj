@@ -176,7 +176,7 @@ async function csprojAddDirectory(this: vscode.ExtensionContext, fsPath: string)
     const changedCsprojs: Csproj[] = []
 
     const files = await workspace.findFiles(
-        path.join(workspace.asRelativePath(fsPath), '**'),
+        path.join(workspace.asRelativePath(fsPath), '**/*'),
         ''
     )
     for (const file of files.filter(file => isDesiredFile(this.globalState, file.fsPath))) {

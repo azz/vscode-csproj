@@ -61,11 +61,11 @@ a directory, `files.exclude`, your saved ignore list, `csproj.includeRegex` and 
 
 ## Release Notes
 
-### Most Recent Release (0.6.5)
+### Most Recent Release (0.6.6)
 
 Fixes:
 
-* Fix an issue with Mac/*NIX paths that caused repeated prompting for the same file.
+* Fix an issue [#7](https://github.com/DerFlatulator/vscode-csproj/issues/7) where adding a directory does not traverse deeply to find files.
 
 ### See GitHub for [full release history](https://github.com/DerFlatulator/vscode-csproj/releases)
 
