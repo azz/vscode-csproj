@@ -61,11 +61,11 @@ a directory, `files.exclude`, your saved ignore list, `csproj.includeRegex` and 
 
 ## Release Notes
 
-### Most Recent Release (0.6.6)
+### Most Recent Release (0.7.0)
 
-Fixes:
+Features:
 
-* Fix an issue [#7](https://github.com/DerFlatulator/vscode-csproj/issues/7) where adding a directory does not traverse deeply to find files.
+* Set `.cs` files to `Compile` by default ([#10](https://github.com/DerFlatulator/vscode-csproj/issues/10)).
 
 ### See GitHub for [full release history](https://github.com/DerFlatulator/vscode-csproj/releases)
 
