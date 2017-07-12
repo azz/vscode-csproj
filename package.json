@@ -108,10 +108,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DerFlatulator/vscode-csproj"
+    "url": "https://github.com/azz/vscode-csproj.git"
   },
   "dependencies": {
-    "@derflatulator/elementtree": "^0.1.7",
+    "@azz/elementtree": "^0.1.6",
     "lodash.debounce": "^4.0.8",
     "mz": "^2.4.0",
     "strip-bom": "^3.0.0"

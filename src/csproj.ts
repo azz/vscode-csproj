@@ -4,7 +4,7 @@ import * as path from 'path'
 
 import {Csproj, XML} from './types'
 
-const etree = require('@derflatulator/elementtree')
+const etree = require('@azz/elementtree')
 const stripBom = require('strip-bom')
 
 export class NoCsprojError extends Error {}

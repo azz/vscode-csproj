@@ -148,6 +148,7 @@ const pickActions = {
         const config = workspace.getConfiguration("csproj")
         const itemType = config.get<ItemType>('itemType', {
             '*': 'Content',
+            '.cs': 'Compile',
             '.ts': 'TypeScriptCompile'
         })
         CsprojUtil.addFile(csproj, filePath, getTypeForFile(fileName, itemType))
