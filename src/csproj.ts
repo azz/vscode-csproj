@@ -37,7 +37,26 @@ export function hasFile(csproj: Csproj, filePath: string) {
 
 export function relativeTo(csproj: Csproj, filePath: string) {
     return path.relative(path.dirname(csproj.fsPath), filePath)
-        .replace(/\//g, '\\') // use Windows style paths for consistency
+        .replace(/(\$|@|\(|\)|;|'|\/)/g, function(match) {
+            switch(match) {
+                case "$":
+                    return "%24";
+                case "@":
+                    return "%40";
+                case "(":
+                    return "%29";
+                case ")":
+                    return "%28";
+                case ";":
+                    return "%3b";
+                case "'":
+                    return "%27";
+                case "/":
+                    return "\\"; // use Windows style paths for consistency
+                default:
+                    return match;
+            }
+        });
 }
 
 export function addFile(csproj: Csproj, filePath: string, itemType: string) {
