@@ -74,8 +74,8 @@ export async function persist(csproj: Csproj, indent = 2) {
 
     // Add byte order mark.
     const xmlFinal = ('\ufeff' + xmlString)
-        .replace(/\n/g, '\r\n') // use CRLF
-        .replace(/\r?\n$/, '') // no newline at end of file
+        .replace(/(?<!\r)>\n/g, '\r\n') // use CRLF
+        .replace(/(\r)?(\n)+$/, '') // no newline at end of file
 
     await fs.writeFile(csproj.fsPath, xmlFinal)
 
