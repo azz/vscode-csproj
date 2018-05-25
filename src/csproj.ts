@@ -2,12 +2,12 @@ import * as vscode from 'vscode'
 import * as fs from 'mz/fs'
 import * as path from 'path'
 
-import {Csproj, XML} from './types'
+import { Csproj, XML } from './types'
 
 const etree = require('@azz/elementtree')
 const stripBom = require('strip-bom')
 
-export class NoCsprojError extends Error {}
+export class NoCsprojError extends Error { }
 
 let _cacheXml: { [path: string]: XML } = Object.create(null)
 
@@ -41,7 +41,7 @@ export function relativeTo(csproj: Csproj, filePath: string) {
 }
 
 export function addFile(csproj: Csproj, filePath: string, itemType: string) {
-    const itemGroups = csproj.xml.getroot().findall('./ItemGroup')
+    const itemGroups = csproj.xml.getroot().findall(`./ItemGroup/${itemType}/..`)
     const itemGroup = itemGroups.length
         ? itemGroups[itemGroups.length - 1]
         : etree.SubElement(csproj.xml.getroot(), 'ItemGroup')
